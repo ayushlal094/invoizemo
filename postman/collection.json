@@ -1,0 +1,317 @@
+{
+  "info": {
+    "name": "Invoizemo API",
+    "description": "Invoizemo backend API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const tokenExpiry = pm.environment.get('tokenExpiry');",
+          "if (tokenExpiry && Date.now() >= parseInt(tokenExpiry)) {",
+          "  pm.sendRequest({",
+          "    url: pm.environment.get('baseUrl') + '/api/v1/auth/refresh',",
+          "    method: 'POST',",
+          "  }, function (err, res) {",
+          "    if (!err && res.code === 200) {",
+          "      pm.environment.set('accessToken', res.json().data.accessToken);",
+          "      pm.environment.set('tokenExpiry', Date.now() + 14 * 60 * 1000);",
+          "    }",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "GET /ready",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ready" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200 or 503', () => pm.expect([200,503]).to.include(pm.response.code));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@invoizemo.test\",\n  \"password\": \"password123\",\n  \"name\": \"Demo User\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "const json = pm.response.json();",
+                "if (json.data?.accessToken) {",
+                "  pm.environment.set('accessToken', json.data.accessToken);",
+                "  pm.environment.set('tokenExpiry', Date.now() + 14 * 60 * 1000);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@invoizemo.test\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const json = pm.response.json();",
+                "pm.expect(json.success).to.be.true;",
+                "if (json.data?.accessToken) {",
+                "  pm.environment.set('accessToken', json.data.accessToken);",
+                "  pm.environment.set('tokenExpiry', Date.now() + 14 * 60 * 1000);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "POST /auth/refresh",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/auth/refresh" },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const json = pm.response.json();",
+                "if (json.data?.accessToken) {",
+                "  pm.environment.set('accessToken', json.data.accessToken);",
+                "  pm.environment.set('tokenExpiry', Date.now() + 14 * 60 * 1000);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/auth/logout"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GET /users/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/users/me"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "PATCH /users/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"defaultCurrency\": \"USD\"\n}" },
+            "url": "{{baseUrl}}/api/v1/users/me"
+          }
+        },
+        {
+          "name": "GET /users/me/sessions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/users/me/sessions"
+          }
+        },
+        {
+          "name": "GET /users/me/export",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/users/me/export"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "POST /clients",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corp\",\n  \"email\": \"billing@acme.test\",\n  \"company\": \"Acme Corp\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clients"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "const json = pm.response.json();",
+                "if (json.data?._id) pm.environment.set('clientId', json.data._id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "GET /clients",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clients?page=1&limit=20"
+          }
+        },
+        {
+          "name": "GET /clients/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "PATCH /clients/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+1-555-0100\"\n}" },
+            "url": "{{baseUrl}}/api/v1/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "DELETE /clients/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clients/{{clientId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "POST /invoices",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"issueDate\": \"2026-06-01\",\n  \"dueDate\": \"2026-06-15\",\n  \"taxRate\": 0.1,\n  \"lineItems\": [\n    { \"description\": \"Web design\", \"quantity\": 1, \"unitPriceCents\": 50000 },\n    { \"description\": \"Hosting\", \"quantity\": 1, \"unitPriceCents\": 2000 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/invoices"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "const json = pm.response.json();",
+                "if (json.data?._id) pm.environment.set('invoiceId', json.data._id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "GET /invoices",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/invoices?page=1&limit=20"
+          }
+        },
+        {
+          "name": "GET /invoices/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/invoices/{{invoiceId}}"
+          }
+        },
+        {
+          "name": "PATCH /invoices/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Thank you for your business\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/invoices/{{invoiceId}}"
+          }
+        },
+        {
+          "name": "PATCH /invoices/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"sent\"\n}" },
+            "url": "{{baseUrl}}/api/v1/invoices/{{invoiceId}}/status"
+          }
+        },
+        {
+          "name": "DELETE /invoices/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/invoices/{{invoiceId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

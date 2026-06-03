@@ -1,0 +1,12 @@
+{
+  "id": "invoizemo-env",
+  "name": "Invoizemo Local",
+  "values": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "enabled": true },
+    { "key": "accessToken", "value": "", "enabled": true },
+    { "key": "tokenExpiry", "value": "", "enabled": true },
+    { "key": "clientId", "value": "", "enabled": true },
+    { "key": "invoiceId", "value": "", "enabled": true }
+  ],
+  "_postman_variable_scope": "environment"
+}
