@@ -1,40 +1,43 @@
 import type { Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
 import { verifyAccessToken } from '../utils/jwt.js';
-import { corsOrigins } from '../config/env.js';
-import { logger } from '../config/logger.js';
+import { env } from '../config/env.js';
 
 export function initSockets(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
     cors: {
-      origin: corsOrigins,
+      origin: env.CORS_ORIGINS.split(',').map((o) => o.trim()),
       credentials: true,
     },
   });
 
+  // Auth guard — validate JWT before allowing socket connection
   io.use((socket, next) => {
-    const token = socket.handshake.auth.token as string | undefined;
+    const token =
+      (socket.handshake.auth?.token as string | undefined) ??
+      (socket.handshake.headers?.authorization?.replace('Bearer ', '') as string | undefined);
+
     if (!token) {
-      next(new Error('Authentication required'));
-      return;
+      return next(new Error('UNAUTHORIZED'));
     }
 
     try {
       const payload = verifyAccessToken(token);
-      socket.data.userId = payload.sub;
+      // Store userId on socket for use in event handlers
+      (socket as typeof socket & { userId: string }).userId = payload.userId ?? payload.sub;
       next();
     } catch {
-      next(new Error('Invalid token'));
+      next(new Error('TOKEN_INVALID'));
     }
   });
 
   io.on('connection', (socket) => {
-    const userId = socket.data.userId as string;
-    socket.join(`user:${userId}`);
-    logger.debug('Socket connected', { userId });
+    const userId = (socket as typeof socket & { userId: string }).userId;
+    // Join a personal room so we can send targeted events
+    void socket.join(`user:${userId}`);
 
     socket.on('disconnect', () => {
-      logger.debug('Socket disconnected', { userId });
+      // cleanup if needed
     });
   });
 

@@ -1,29 +1,23 @@
 import type { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/appError.js';
 
-type Role = 'owner' | 'admin' | 'member';
+type Role = 'member' | 'admin' | 'owner';
 
-const roleHierarchy: Record<Role, number> = {
-  member: 1,
-  admin: 2,
-  owner: 3,
-};
+const ROLE_RANK: Record<Role, number> = { member: 1, admin: 2, owner: 3 };
 
-export function roleGuard(...allowedRoles: Role[]) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      next(new AppError(401, 'UNAUTHORIZED', 'Authentication required'));
-      return;
+function getRank(role: string): number {
+  return ROLE_RANK[role as Role] ?? 0;
+}
+
+export function roleGuard(minimumRole: Role) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const userRole = req.user?.role ?? 'member';
+    if (getRank(userRole) >= getRank(minimumRole)) {
+      next();
+    } else {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Insufficient permissions' },
+      });
     }
-
-    const userLevel = roleHierarchy[req.user.role];
-    const minRequired = Math.min(...allowedRoles.map((r) => roleHierarchy[r]));
-
-    if (userLevel < minRequired) {
-      next(new AppError(403, 'FORBIDDEN', 'Insufficient permissions'));
-      return;
-    }
-
-    next();
   };
 }

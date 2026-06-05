@@ -46,6 +46,7 @@ if (isGoogleOAuthEnabled) {
   );
 }
 
-// Named export so auth.controller can do: import { passportInstance } from './passport.js'
+// Export both ways so any import style works
+export function configurePassport() { /* already configured above */ }
 export { passport as passportInstance };
 export default passport;

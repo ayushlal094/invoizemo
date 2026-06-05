@@ -44,3 +44,4 @@ export async function revokeSession(req: Request, res: Response, next: NextFunct
     res.json({ success: true, data: { message: 'Session revoked' } });
   } catch (err) { next(err); }
 }
+  
