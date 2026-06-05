@@ -57,7 +57,6 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
 userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
 export const User = model<IUser>('User', userSchema);
