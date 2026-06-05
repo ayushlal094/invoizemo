@@ -20,6 +20,9 @@ export interface IUser extends Document {
   googleId?: string;
   refreshSessions: IRefreshSession[];
   isDeleted: boolean;
+  // Password reset fields
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,12 +50,15 @@ const userSchema = new Schema<IUser>(
     googleId: { type: String, sparse: true },
     refreshSessions: [refreshSessionSchema],
     isDeleted: { type: Boolean, default: false },
+    // Password reset (hashed token + expiry)
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
   },
   { timestamps: true }
 );
 
 userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
 export const User = model<IUser>('User', userSchema);
-
 export type UserDocument = IUser & { _id: Types.ObjectId };
