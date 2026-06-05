@@ -1,18 +1,17 @@
 import { z } from 'zod';
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  timezone: z.string().min(1).max(64).optional(),
+  name: z.string().min(1).optional(),
   defaultCurrency: z.string().length(3).optional(),
+  timezone: z.string().min(1).optional(),
 });
 
 export const deleteUserSchema = z.object({
-  confirmText: z.literal('DELETE MY ACCOUNT'),
+  confirmText: z.literal('DELETE MY ACCOUNT', {
+    errorMap: () => ({ message: 'You must type DELETE MY ACCOUNT exactly' }),
+  }),
 });
 
 export const sessionParamsSchema = z.object({
-  id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid session id'),
+  id: z.string().min(1, 'Session ID required'),
 });
-
-export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-export type DeleteUserInput = z.infer<typeof deleteUserSchema>;

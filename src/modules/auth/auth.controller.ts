@@ -1,8 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
-import passport from '../../config/passport.js';
+import * as passportLib from 'passport';
 import * as authService from './auth.service.js';
 import { env } from '../../config/env.js';
 import type { UserDocument } from '../users/user.model.js';
+
+// Use passport as a namespace — works regardless of how passport exports itself
+const passport = passportLib.default ?? passportLib;
 
 function getMeta(req: Request) {
   return {
@@ -58,7 +61,6 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
 export async function forgotPassword(req: Request, res: Response, next: NextFunction) {
   try {
     await authService.forgotPassword(req.body.email);
-    // Always respond with success — never leak if email exists
     res.json({
       success: true,
       data: { message: 'If that email exists, a reset link has been sent.' },
@@ -74,7 +76,7 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
   } catch (err) { next(err); }
 }
 
-// GET /auth/google  — redirects to Google consent screen
+// GET /auth/google
 export function googleAuth(req: Request, res: Response, next: NextFunction) {
   passport.authenticate('google', {
     scope: ['profile', 'email'],
@@ -82,7 +84,7 @@ export function googleAuth(req: Request, res: Response, next: NextFunction) {
   })(req, res, next);
 }
 
-// GET /auth/google/callback  — Google redirects here
+// GET /auth/google/callback
 export function googleCallback(req: Request, res: Response, next: NextFunction) {
   passport.authenticate('google', { session: false }, async (err: Error, user: UserDocument) => {
     if (err || !user) {

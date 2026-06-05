@@ -1,60 +1,46 @@
 import type { Request, Response, NextFunction } from 'express';
 import * as userService from './user.service.js';
-import { AppError } from '../../utils/appError.js';
 
-export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getMe(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await userService.getMe(req.user!.id);
-    res.json({ success: true, data: user });
-  } catch (error) {
-    next(error);
-  }
+    const user = await userService.getUserById(req.user!.userId);
+    res.json({ success: true, data: userService.safeUser(user) });
+  } catch (err) { next(err); }
 }
 
-export async function updateMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function updateMe(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await userService.updateMe(req.user!.id, req.body);
-    res.json({ success: true, data: user });
-  } catch (error) {
-    next(error);
-  }
+    const user = await userService.updateUser(req.user!.userId, req.body);
+    res.json({ success: true, data: userService.safeUser(user) });
+  } catch (err) { next(err); }
 }
 
-export async function deleteMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function deleteMe(req: Request, res: Response, next: NextFunction) {
   try {
-    if (req.body.confirmText !== 'DELETE MY ACCOUNT') {
-      throw new AppError(400, 'CONFIRM_TEXT_MISMATCH', 'Confirmation text does not match');
-    }
-    await userService.deleteMe(req.user!.id);
-    res.json({ success: true, data: { message: 'Account deleted' } });
-  } catch (error) {
-    next(error);
-  }
+    await userService.deleteUser(req.user!.userId);
+    res
+      .clearCookie('refreshToken', { httpOnly: true, path: '/' })
+      .json({ success: true, data: { message: 'Account deleted' } });
+  } catch (err) { next(err); }
 }
 
-export async function exportMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function exportMe(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = await userService.exportMe(req.user!.id);
+    const data = await userService.exportUser(req.user!.userId);
     res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
+  } catch (err) { next(err); }
 }
 
-export async function getSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getSessions(req: Request, res: Response, next: NextFunction) {
   try {
-    const sessions = await userService.listSessions(req.user!.id);
+    const sessions = await userService.getSessions(req.user!.userId);
     res.json({ success: true, data: sessions });
-  } catch (error) {
-    next(error);
-  }
+  } catch (err) { next(err); }
 }
 
-export async function revokeSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function revokeSession(req: Request, res: Response, next: NextFunction) {
   try {
-    await userService.revokeSession(req.user!.id, req.params.id as string);
+    await userService.revokeSession(req.user!.userId, req.params.id);
     res.json({ success: true, data: { message: 'Session revoked' } });
-  } catch (error) {
-    next(error);
-  }
+  } catch (err) { next(err); }
 }
