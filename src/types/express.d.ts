@@ -2,10 +2,13 @@ import type { AccessTokenPayload } from '../utils/jwt.js';
 
 declare global {
   namespace Express {
-    // Extend Express.User (used by passport) to match our token payload
-    interface User extends AccessTokenPayload {}
+    // Extend Express.User so passport + req.user both type correctly
+    interface User {
+      id: string;
+      email: string;
+      role: string;
+    }
 
-    // Also type req.user directly
     interface Request {
       user?: AccessTokenPayload;
     }

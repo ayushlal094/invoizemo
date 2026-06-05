@@ -18,18 +18,18 @@ if (isGoogleOAuthEnabled) {
           const email = profile.emails?.[0]?.value?.toLowerCase();
           if (!email) return done(new Error('No email returned from Google'));
 
-          let user = await User.findOne({
+          let dbUser = await User.findOne({
             $or: [{ googleId: profile.id }, { email }],
             isDeleted: false,
           });
 
-          if (user) {
-            if (!user.googleId) {
-              user.googleId = profile.id;
-              await user.save();
+          if (dbUser) {
+            if (!dbUser.googleId) {
+              dbUser.googleId = profile.id;
+              await dbUser.save();
             }
           } else {
-            user = await User.create({
+            dbUser = await User.create({
               email,
               name: profile.displayName ?? email.split('@')[0],
               googleId: profile.id,
@@ -37,7 +37,14 @@ if (isGoogleOAuthEnabled) {
             });
           }
 
-          return done(null, user);
+          // Cast to Express.User shape — only pass what the type requires
+          const expressUser: Express.User = {
+            id: dbUser._id.toString(),
+            email: dbUser.email,
+            role: dbUser.role,
+          };
+
+          return done(null, expressUser);
         } catch (err) {
           return done(err as Error);
         }
@@ -46,7 +53,6 @@ if (isGoogleOAuthEnabled) {
   );
 }
 
-// Export both ways so any import style works
-export function configurePassport() { /* already configured above */ }
-export { passport as passportInstance };
+// Named export so any import style works
+export function configurePassport() { /* strategies registered above at module load */ }
 export default passport;

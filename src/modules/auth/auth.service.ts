@@ -30,7 +30,7 @@ function makeAppError(message: string, statusCode: number, code: string) {
 
 function buildTokens(user: UserDocument, sessionId: string) {
   const accessToken = signAccessToken({
-    userId: user._id.toString(),
+    id: user._id.toString(),
     email: user.email,
     role: user.role,
   });

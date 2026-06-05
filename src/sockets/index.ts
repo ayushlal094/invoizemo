@@ -11,20 +11,16 @@ export function initSockets(httpServer: HttpServer): Server {
     },
   });
 
-  // Auth guard — validate JWT before allowing socket connection
   io.use((socket, next) => {
     const token =
       (socket.handshake.auth?.token as string | undefined) ??
       (socket.handshake.headers?.authorization?.replace('Bearer ', '') as string | undefined);
 
-    if (!token) {
-      return next(new Error('UNAUTHORIZED'));
-    }
+    if (!token) return next(new Error('UNAUTHORIZED'));
 
     try {
       const payload = verifyAccessToken(token);
-      // Store userId on socket for use in event handlers
-      (socket as typeof socket & { userId: string }).userId = payload.userId ?? payload.sub;
+      (socket as typeof socket & { userId: string }).userId = payload.id;
       next();
     } catch {
       next(new Error('TOKEN_INVALID'));
@@ -33,12 +29,8 @@ export function initSockets(httpServer: HttpServer): Server {
 
   io.on('connection', (socket) => {
     const userId = (socket as typeof socket & { userId: string }).userId;
-    // Join a personal room so we can send targeted events
     void socket.join(`user:${userId}`);
-
-    socket.on('disconnect', () => {
-      // cleanup if needed
-    });
+    socket.on('disconnect', () => { /* cleanup */ });
   });
 
   return io;
