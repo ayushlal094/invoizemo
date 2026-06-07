@@ -11,6 +11,7 @@ export interface IRefreshSession {
 }
 
 export interface IUser extends Document {
+  id: string;  // virtual field from Mongoose — _id.toString()
   email: string;
   passwordHash?: string;
   name: string;
