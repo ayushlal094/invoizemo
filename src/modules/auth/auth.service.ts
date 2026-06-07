@@ -211,9 +211,14 @@ export async function logoutUser(rawRefreshToken: string | undefined) {
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 
 export async function handleGoogleUser(
-  user: UserDocument,
+  expressUser: Express.User,
   meta: { userAgent?: string; ip?: string }
 ) {
+  // passport.ts passes Express.User { id, email, role }
+  // Re-fetch full Mongoose document so buildTokens can access _id
+  const user = await User.findById(expressUser.id) as UserDocument | null;
+  if (!user) throw makeAppError("User not found after Google OAuth", 401, "UNAUTHORIZED");
+
   const sessionId = crypto.randomUUID();
   const { accessToken, refreshToken } = buildTokens(user, sessionId);
   await createSession(user, refreshToken, meta);
