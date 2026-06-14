@@ -17,7 +17,13 @@ export function validate(schema: ZodType, part: RequestPart = 'body') {
       next(new AppError(400, 'VALIDATION_ERROR', 'Validation failed', fields));
       return;
     }
-    req[part] = result.data;
+
+    // req.query is read-only in Express — use Object.assign instead
+    if (part === 'query') {
+      Object.assign(req.query, result.data);
+    } else {
+      req[part] = result.data as never;
+    }
     next();
   };
 }
